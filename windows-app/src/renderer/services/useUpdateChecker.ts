@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 
-// CONFIG: imposta qui il tuo repo GitHub (owner/repo) - CAMBIA QUESTO
-const GITHUB_REPO = 'TUO_USERNAME/ordini-elly-edition'
+// CONFIG: imposta qui il tuo repo GitHub (owner/repo)
+const GITHUB_REPO = 'OrangoTanga/ordini-elle-edition'
 
 export interface AppVersionInfo {
   version: string | null
