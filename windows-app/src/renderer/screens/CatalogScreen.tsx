@@ -43,6 +43,7 @@ export const CatalogScreen: React.FC = () => {
   const [form, setForm] = useState<any>({
     name: '', description: '', category: '', image_path: '', active: true,
     prices: {} as Record<number, string>,
+    pieces_per_case: 1,
   })
   const [listini, setListini] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -54,6 +55,7 @@ export const CatalogScreen: React.FC = () => {
   const { addItem } = useCart()
   const fileRef = useRef<HTMLInputElement>(null)
   const originalFileRef = useRef<File | null>(null)
+  const isAdmin = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).role === 'admin' : false
 
   useEffect(() => { fetchProducts(); fetchListini() }, [])
 
@@ -73,7 +75,7 @@ export const CatalogScreen: React.FC = () => {
     setEditing(null)
     const prices: Record<number, string> = {}
     listini.forEach(l => { prices[l.id] = '' })
-    setForm({ name: '', description: '', category: '', image_path: '', active: true, prices })
+    setForm({ name: '', description: '', category: '', image_path: '', active: true, prices, pieces_per_case: 1 })
     setShowForm(true)
   }
 
@@ -89,6 +91,7 @@ export const CatalogScreen: React.FC = () => {
       name: p.name, description: p.description, category: p.category,
       image_path: p.image_path || '', active: Boolean(p.active),
       prices,
+      pieces_per_case: p.pieces_per_case || 1,
     })
     setShowForm(true)
   }
@@ -137,6 +140,7 @@ export const CatalogScreen: React.FC = () => {
       image_path: form.image_path,
       active: form.active ? 1 : 0,
       price: firstPrice !== '' ? parseFloat(firstPrice) : (editing?.price ?? 0),
+      pieces_per_case: form.pieces_per_case || 1,
     }
 
     setSaving(true)
@@ -292,6 +296,21 @@ export const CatalogScreen: React.FC = () => {
             <option value="" style={{ background: tokens.colors.bg }}>Seleziona categoria</option>
             {categories.map(c => <option key={c} value={c} style={{ background: tokens.colors.bg }}>{c}</option>)}
           </select>
+
+          {isAdmin && (
+            <div>
+              <label style={{
+                fontSize: tokens.font.size.xs, color: tokens.colors.textMuted,
+                marginBottom: 4, display: 'block',
+              }}>
+                Pezzi per cartone
+              </label>
+              <input type="number" min="1" placeholder="Es. 6"
+                value={form.pieces_per_case || 1}
+                onChange={e => setForm({ ...form, pieces_per_case: parseInt(e.target.value) || 1 })}
+                style={inputS} />
+            </div>
+          )}
 
           {listini.map(l => (
             <div key={l.id}>

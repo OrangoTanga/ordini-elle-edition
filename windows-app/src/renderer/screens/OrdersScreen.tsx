@@ -93,7 +93,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onPendingCountChange
               {f.icon}
               {f.label}
             </button>
-          ))}
+))}
         </div>
 
         <GlassButton
@@ -144,7 +144,7 @@ export const OrdersScreen: React.FC<OrdersScreenProps> = ({ onPendingCountChange
                 <option value="">Tutti</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id} style={{ background: tokens.colors.bgAlt }}>{u.name}</option>
-                ))}
+))}
               </select>
             </div>
             <div>

@@ -168,7 +168,8 @@ function runMigrations(): void {
       category TEXT DEFAULT '',
       image_path TEXT DEFAULT '',
       active INTEGER DEFAULT 1,
-      created_at TEXT DEFAULT (datetime('now'))
+      created_at TEXT DEFAULT (datetime('now')),
+      pieces_per_case INTEGER DEFAULT 1
     )
   `)
   db.run(`
@@ -304,6 +305,27 @@ function runMigrations(): void {
       FOREIGN KEY (product_id) REFERENCES products(id)
     )
   `)
+
+  // Migration: add pieces_per_case to products if missing
+  const prodCols = db.exec('PRAGMA table_info(products)').map((r: any) => r[1])
+  if (!prodCols.includes('pieces_per_case')) {
+    db.run(`ALTER TABLE products ADD COLUMN pieces_per_case INTEGER DEFAULT 1`)
+  }
+
+  // Migration: add pieces_per_case to order_items if missing
+  const oiCols = db.exec('PRAGMA table_info(order_items)').map((r: any) => r[1])
+  if (!oiCols.includes('pieces_per_case')) {
+    db.run(`ALTER TABLE order_items ADD COLUMN pieces_per_case INTEGER DEFAULT 1`)
+  }
+
+  // Migration: add delivered_date, paid_date to orders if missing
+  const orderCols2 = db.exec('PRAGMA table_info(orders)').map((r: any) => r[1])
+  if (!orderCols2.includes('delivered_date')) {
+    db.run(`ALTER TABLE orders ADD COLUMN delivered_date TEXT DEFAULT NULL`)
+  }
+  if (!orderCols2.includes('paid_date')) {
+    db.run(`ALTER TABLE orders ADD COLUMN paid_date TEXT DEFAULT NULL`)
+  }
 
   const count = db.exec('SELECT COUNT(*) as cnt FROM users')
   const userCount = count?.[0]?.values?.[0]?.[0] ?? 0

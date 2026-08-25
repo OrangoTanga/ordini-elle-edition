@@ -132,6 +132,8 @@ export const api = {
     },
     updateStatus: (id: number, status: string) =>
       fetchApi<any>(`/api/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+    delete: (id: number) =>
+      fetchApi<any>(`/api/orders/${id}`, { method: 'DELETE' }),
     dashboard: () => fetchApi<any>('/api/orders/stats/dashboard'),
   },
 

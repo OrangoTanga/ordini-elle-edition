@@ -9,6 +9,9 @@ interface OrderCardProps {
   onApprove?: () => void
   onReject?: () => void
   onPrint?: () => void
+  onDelete?: () => void
+  onBulkToggle?: () => void
+  bulkSelected?: boolean
 }
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -17,7 +20,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string }>
   rejected: { label: 'Rifiutato', color: '#f5576c', bg: 'rgba(245, 87, 108, 0.15)' },
 }
 
-export const OrderCard: React.FC<OrderCardProps> = ({ order, expanded, onToggle, onApprove, onReject, onPrint }) => {
+export const OrderCard: React.FC<OrderCardProps> = ({ order, expanded, onToggle, onApprove, onReject, onPrint, onDelete, onBulkToggle, bulkSelected }) => {
   const status = statusConfig[order.status] || statusConfig.pending
   const timeAgo = getTimeAgo(order.created_at)
 
@@ -25,6 +28,14 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, expanded, onToggle,
     <div>
       <GlassCard onClick={onToggle} style={{ marginBottom: expanded ? 0 : 8, borderLeft: `3px solid ${status.color}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {onBulkToggle && (
+            <input
+              type="checkbox"
+              checked={bulkSelected}
+              onChange={(e) => { e.stopPropagation(); onBulkToggle?.(); }}
+              style={{ width: 18, height: 18, cursor: 'pointer', accentColor: tokens.colors.primary }}
+            />
+          )}
           <div style={{ fontSize: 20 }}>🏪</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 600 }}>{order.business_name}</div>
@@ -54,7 +65,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, expanded, onToggle,
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>CLIENTE</div>
               <div style={{ fontWeight: 500 }}>{order.business_name}</div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>P.IVA: {order.vat}</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>IBAN: {order.iban}</div>
             </div>
             <div>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 4 }}>DETTAGLI</div>
@@ -135,6 +145,9 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, expanded, onToggle,
                 </>
               )}
               <GlassButton variant="outline" size="sm" onClick={onPrint}>📄 Stampa</GlassButton>
+              {onDelete && (
+                <GlassButton variant="danger" size="sm" onClick={onDelete}>🗑️ Elimina</GlassButton>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
               <div style={{ fontSize: 18, fontWeight: 700 }}>

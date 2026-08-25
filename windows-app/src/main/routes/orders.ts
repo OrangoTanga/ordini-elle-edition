@@ -10,7 +10,7 @@ ordersRouter.use(authenticateToken)
 
 ordersRouter.get('/', (req: AuthRequest, res) => {
   const db = getDb()
-  const { status, from, to } = req.query
+  const { status, from, to, from_delivered, to_delivered, from_paid, to_paid } = req.query
 
   let query = `
     SELECT o.*, u.name as user_name 
@@ -31,6 +31,22 @@ ordersRouter.get('/', (req: AuthRequest, res) => {
   if (to) {
     query += ' AND o.created_at <= ?'
     params.push(to)
+  }
+  if (from_delivered) {
+    query += ' AND o.delivered_date >= ?'
+    params.push(from_delivered)
+  }
+  if (to_delivered) {
+    query += ' AND o.delivered_date <= ?'
+    params.push(to_delivered)
+  }
+  if (from_paid) {
+    query += ' AND o.paid_date >= ?'
+    params.push(from_paid)
+  }
+  if (to_paid) {
+    query += ' AND o.paid_date <= ?'
+    params.push(to_paid)
   }
 
   query += ' ORDER BY o.created_at DESC'
@@ -216,4 +232,24 @@ ordersRouter.get('/stats/dashboard', (req: AuthRequest, res) => {
       pendingOrders: pendingWithItems,
     },
   })
+})
+
+ordersRouter.delete('/:id', (req: AuthRequest, res) => {
+  const db = getDb()
+  const orderId = req.params.id
+
+  // Check if order exists
+  const order = db.prepare('SELECT id FROM orders WHERE id = ?').get(orderId)
+  if (!order) {
+    res.status(404).json({ success: false, error: 'Ordine non trovato' })
+    return
+  }
+
+  // Delete order items first (cascade should handle this, but being explicit)
+  db.prepare('DELETE FROM order_items WHERE order_id = ?').run(orderId)
+  db.prepare('DELETE FROM order_shared_reps WHERE order_id = ?').run(orderId)
+  db.prepare('DELETE FROM payments WHERE order_id = ?').run(orderId)
+  db.prepare('DELETE FROM orders WHERE id = ?').run(orderId)
+
+  res.json({ success: true, data: { message: 'Ordine eliminato' } })
 })

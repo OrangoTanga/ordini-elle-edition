@@ -90,12 +90,10 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({ open, onClos
     try {
       const businessName = selectedCustomer?.business_name || searchCustomer.trim()
       const vat = selectedCustomer?.vat || ''
-      const iban = selectedCustomer?.iban || ''
 
       const orderData = {
         business_name: businessName,
         vat,
-        iban,
         invoice_date: invoiceDate,
         payment_type: paymentType,
         payment_terms: paymentType === 'bonifico_finemese' ? 'Fine mese' : 'Immediato',
@@ -214,8 +212,6 @@ export const OrderCreateModal: React.FC<OrderCreateModalProps> = ({ open, onClos
                     <div style={{ fontWeight: 500, color: tokens.colors.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.business_name}</div>
                     <div style={{ fontSize: tokens.font.size.xs, color: tokens.colors.textMuted }}>
                       {c.vat && `P.IVA: ${c.vat}`}
-                      {c.vat && c.iban && ' · '}
-                      {c.iban && `IBAN: ${c.iban}`}
                     </div>
                   </div>
                   <CheckCircle size={18} color={tokens.colors.primary} weight="fill" />
