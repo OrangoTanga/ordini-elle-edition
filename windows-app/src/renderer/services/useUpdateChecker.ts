@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 
+// CONFIG: imposta qui il tuo repo GitHub (owner/repo) - CAMBIA QUESTO
+const GITHUB_REPO = 'TUO_USERNAME/ordini-elly-edition'
+
 export interface AppVersionInfo {
   version: string | null
   url: string | null
@@ -51,6 +54,30 @@ function comparePre(a: string[], b: string[]): -1 | 0 | 1 {
   return 0
 }
 
+// Fetch versione da GitHub Releases (app-versions.json asset)
+async function fetchFromGitHub(platform: 'windows' | 'android'): Promise<AppVersionInfo | null> {
+  try {
+    const res = await fetch(`https://github.com/${GITHUB_REPO}/releases/latest/download/app-versions.json`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    return data[platform] || null
+  } catch {
+    return null
+  }
+}
+
+// Fetch versione dal worker locale (se configurato)
+async function fetchFromWorker(platform: 'windows' | 'android'): Promise<AppVersionInfo | null> {
+  try {
+    const res = await api.appVersions.get(platform)
+    if (res.success && res.data) return res.data
+  } catch { /* ignora */ }
+  return null
+}
+
 export function useUpdateChecker(platform: 'windows' | 'android') {
   const [info, setInfo] = useState<AppVersionInfo | null>(null)
   const [currentVersion, setCurrentVersion] = useState('')
@@ -68,10 +95,14 @@ export function useUpdateChecker(platform: 'windows' | 'android') {
         const version = await window.electron?.getAppVersion()
         if (!version) return
         setCurrentVersion(version)
-        const res = await api.appVersions.get(platform)
+
+        // Prova prima GitHub Releases, poi fallback al worker
+        let latest = await fetchFromGitHub(platform)
+        if (!latest) latest = await fetchFromWorker(platform)
         if (cancelled) return
-        if (res.success && res.data && res.data.version && compareVersions(version, res.data.version) < 0) {
-          setInfo(res.data)
+
+        if (latest && latest.version && compareVersions(version, latest.version) < 0) {
+          setInfo(latest)
         }
       } catch { /* silenzioso: un errore di rete non blocca l'app */ }
     }
