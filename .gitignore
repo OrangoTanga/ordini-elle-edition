@@ -59,10 +59,12 @@ electron-builder.yaml
 electron-builder.yml
 
 # Android
-android-app/build/
-android-app/app/build/
-android-app/*.apk
-android-app/*.aab
+android-app/
+*.apk
+*.aab
+
+# Wrangler/Cloudflare
+.wrangler/
 
 # Windows
 windows-app/release/
