@@ -18,6 +18,7 @@ import { api } from './api'
 import { useUpdateChecker } from './services/useUpdateChecker'
 import { UpdateBanner } from './components/UpdateBanner'
 import { UpdateBlocker } from './components/UpdateBlocker'
+import { CartProvider, CartButton, CartDrawer } from './context/CartContext'
 import {
   ChartBar, ClipboardText, Package, Storefront, User, CurrencyEur,
   Coins, CreditCard, Calendar, Gear,
@@ -120,29 +121,33 @@ export default function App() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: tokens.colors.bg }}>
-      <div style={{
-        height: 4, width: '100%', WebkitAppRegion: 'drag', cursor: 'default',
-        background: 'transparent', position: 'fixed', top: 0, left: 0, zIndex: 9999,
-      }} />
-      {update.info && !update.dismissed && (
-        <UpdateBanner
-          info={update.info}
-          currentVersion={update.currentVersion}
-          downloading={update.downloading}
-          error={update.error}
-          onUpdateNow={update.updateNow}
-          onDismiss={update.dismiss}
-        />
-      )}
-      <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} orderCount={pendingCount} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Header title={pageTitles[currentPage]} icon={pageIcons[currentPage]} />
-        <div style={{ flex: 1, overflow: 'auto', padding: tokens.spacing.xxl }}>
-          {renderScreen()}
+    <CartProvider>
+      <div style={{ display: 'flex', height: '100vh', background: tokens.colors.bg }}>
+        <div style={{
+          height: 4, width: '100%', WebkitAppRegion: 'drag', cursor: 'default',
+          background: 'transparent', position: 'fixed', top: 0, left: 0, zIndex: 9999,
+        }} />
+        {update.info && !update.dismissed && (
+          <UpdateBanner
+            info={update.info}
+            currentVersion={update.currentVersion}
+            downloading={update.downloading}
+            error={update.error}
+            onUpdateNow={update.updateNow}
+            onDismiss={update.dismiss}
+          />
+        )}
+        <Sidebar currentPage={currentPage} onPageChange={setCurrentPage} orderCount={pendingCount} />
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Header title={pageTitles[currentPage]} icon={pageIcons[currentPage]} />
+          <div style={{ flex: 1, overflow: 'auto', padding: tokens.spacing.xxl }}>
+            {renderScreen()}
+          </div>
         </div>
+        <CartButton />
+        <CartDrawer />
+        <ToastContainer />
       </div>
-      <ToastContainer />
-    </div>
+    </CartProvider>
   )
 }

@@ -11,9 +11,10 @@ import { validateProduct, showValidationError } from '../validation'
 import { toast } from '../components/Toast'
 import { categoryIcon } from '../categories'
 import { useCategories } from '../services/useCategories'
+import { useCart } from '../context/CartContext'
 import {
   MagnifyingGlass, Plus, PencilSimple, TrashSimple,
-  Camera, Image, Spinner,
+  Camera, Image, Spinner, ShoppingCartSimple,
 } from '@phosphor-icons/react'
 
 const MAX_IMG_DIM = 400
@@ -50,6 +51,7 @@ export const CatalogScreen: React.FC = () => {
   const [bgProgress, setBgProgress] = useState('')
   const [saving, setSaving] = useState(false)
   const { categories, refresh: refreshCategories } = useCategories()
+  const { addItem } = useCart()
   const fileRef = useRef<HTMLInputElement>(null)
   const originalFileRef = useRef<File | null>(null)
 
@@ -405,11 +407,34 @@ export const CatalogScreen: React.FC = () => {
                   }} />
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                  {section.products.map(product => (
+                  {section.products.map(product => {
+                    const availablePrices = listini
+                      .map(l => {
+                        const lp = product.listino_prices || []
+                        const found = lp.find((x: any) => x.listino_id === l.id)
+                        return found ? { listinoId: l.id, listinoName: l.name, price: found.price } : null
+                      })
+                      .filter(Boolean) as { listinoId: number; listinoName: string; price: number }[]
+
+                    const [showAddMenu, setShowAddMenu] = useState(false)
+                    const addToCart = (listino: { listinoId: number; listinoName: string; price: number }) => {
+                      addItem({
+                        productId: product.id,
+                        productName: product.name,
+                        price: listino.price,
+                        quantity: 1,
+                        imagePath: product.image_path,
+                        listinoId: listino.listinoId,
+                        listinoName: listino.listinoName,
+                      })
+                      setShowAddMenu(false)
+                    }
+
+                    return (
                     <GlassCard key={product.id} style={{
                       display: 'flex', gap: tokens.spacing.md, alignItems: 'center',
                       width: 'calc(33.333% - 7px)', minWidth: 320, flex: '1 0 auto',
-                      padding: tokens.spacing.md,
+                      padding: tokens.spacing.md, position: 'relative',
                     }}>
                       {product.image_path ? (
                         <div style={{
@@ -439,11 +464,11 @@ export const CatalogScreen: React.FC = () => {
                           {product.name}
                         </div>
                         <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                          {listini.map(l => (
-                            <div key={l.id} style={{ fontSize: tokens.font.size.xs }}>
-                              <span style={{ color: tokens.colors.textMuted }}>{l.name.split(' ')[1]}: </span>
+                          {availablePrices.map(p => (
+                            <div key={p.listinoId} style={{ fontSize: tokens.font.size.xs }}>
+                              <span style={{ color: tokens.colors.textMuted }}>{p.listinoName.split(' ')[1]}: </span>
                               <span style={{ color: tokens.colors.primary, fontWeight: tokens.font.weight.semibold }}>
-                                {getProductPrice(product, l.id)}
+                                €{p.price.toFixed(2)}
                               </span>
                             </div>
                           ))}
@@ -451,6 +476,39 @@ export const CatalogScreen: React.FC = () => {
                       </div>
                       <Badge variant={product.active ? 'success' : 'danger'} label="" dot />
                       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                        {availablePrices.length > 0 && (
+                          <div style={{ position: 'relative' }}>
+                            <GlassButton variant="primary" size="sm" onClick={() => setShowAddMenu(!showAddMenu)}>
+                              <ShoppingCartSimple size={14} weight="bold" />
+                            </GlassButton>
+                            {showAddMenu && (
+                              <div style={{
+                                position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
+                                background: tokens.colors.bgAlt, border: `1px solid ${tokens.colors.border}`,
+                                borderRadius: tokens.radius.md, padding: tokens.spacing.sm,
+                                boxShadow: tokens.shadow.modal, zIndex: 10, minWidth: 180,
+                              }}>
+                                {availablePrices.map(p => (
+                                  <button
+                                    key={p.listinoId}
+                                    onClick={() => addToCart(p)}
+                                    style={{
+                                      width: '100%', display: 'flex', justifyContent: 'space-between',
+                                      padding: '8px 12px', background: 'none', border: 'none',
+                                      color: tokens.colors.text, cursor: 'pointer', textAlign: 'left',
+                                      fontSize: tokens.font.size.sm, borderRadius: tokens.radius.sm,
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = tokens.colors.surfaceHover}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <span>{p.listinoName}</span>
+                                    <span style={{ color: tokens.colors.primary, fontWeight: 600 }}>€{p.price.toFixed(2)}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                         <GlassButton variant="outline" size="sm" onClick={() => openEdit(product)}>
                           <PencilSimple size={14} />
                         </GlassButton>
@@ -459,7 +517,8 @@ export const CatalogScreen: React.FC = () => {
                         </GlassButton>
                       </div>
                     </GlassCard>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             )

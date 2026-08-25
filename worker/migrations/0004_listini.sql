@@ -34,9 +34,9 @@ ALTER TABLE orders ADD COLUMN listino_id INTEGER REFERENCES listini(id);
 
 -- Seed listini
 INSERT INTO listini (name, commission_percent, payment_terms, sort_order) VALUES
-  ('Listino 1', 15, 'Fattura a 30 giorni. Opzione sconto 3% per pagamento immediato (assegno allo scarico).', 1),
-  ('Listino 2', 12, 'Assegno datato allo scarico. Opzione sconto 3% per pagamento immediato.', 2),
-  ('Listino 3', 10, 'Solo contanti. Opzione sconto 3% per bonifico anticipato.', 3);
+  ('Listino Dettaglio', 15, 'Pagamento: anticipato con sconto 3% / alla consegna / bonifico a fine mese', 1),
+  ('Listino Horeca', 12, 'Pagamento: anticipato con sconto 3% / alla consegna / bonifico a fine mese', 2),
+  ('Listino Ingrosso', 10, 'Pagamento: anticipato con sconto 3% / alla consegna / bonifico a fine mese', 3);
 
 -- Seed settings
 INSERT OR IGNORE INTO settings (key, value, description) VALUES

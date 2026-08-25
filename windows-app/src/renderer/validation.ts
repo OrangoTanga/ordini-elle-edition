@@ -38,7 +38,7 @@ export function validateProduct(data: Record<string, any>): string | null {
   if (data.name.trim().length < 1 || data.name.trim().length > 200)
     return 'Nome: 1-200 caratteri'
   if (data.price == null || isNaN(Number(data.price))) return 'Inserisci prezzo valido'
-  if (Number(data.price) < 0) return 'Il prezzo non può essere negativo'
+  if (Number(data.price) < 0) return 'Il prezzo non può essere negativo (0 per omaggi)'
   return null
 }
 
