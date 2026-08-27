@@ -1,0 +1,113 @@
+name: Build & Release Windows Installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.1.8)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: windows-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: windows-app
+        run: npm ci
+
+      - name: Build app
+        working-directory: windows-app
+        run: npm run build
+
+      - name: Generate icons
+        working-directory: windows-app
+        run: npm run icons
+
+      - name: Package installer (NSIS)
+        working-directory: windows-app
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: windows-app/release/*.exe
+          retention-days: 30
+
+      - name: Create Release
+        id: create_release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: Ordini Elly Edition ${{ github.event.inputs.version || github.ref_name }}
+          draft: false
+          prerelease: false
+          files: windows-app/release/*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update app-versions.json for OTA
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${VERSION#v}"
+          cat > app-versions.json <<EOF
+          {
+            "windows": {
+              "version": "$VERSION",
+              "url": "https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/Ordini%20Elly%20Edition%20Setup%20$VERSION.exe",
+              "mandatory": false,
+              "notes": "Aggiornamento automatico via GitHub Releases"
+            },
+            "android": {
+              "version": "",
+              "url": "",
+              "mandatory": false,
+              "notes": ""
+            }
+          }
+          EOF
+          echo "app-versions.json created"
+
+      - name: Upload app-versions.json as release asset
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app-versions.json
+          asset_name: app-versions.json
+          asset_content_type: application/json
+
+      - name: Release info
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${VERSION#v}"
+          echo "✅ Release creato: https://github.com/${{ github.repository }}/releases/tag/${{ github.event.inputs.version || github.ref_name }}"
+          echo "📥 Installer: https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/Ordini%20Elly%20Edition%20Setup%20$VERSION.exe"
+          echo "🔗 OTA endpoint: https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version || github.ref_name }}/app-versions.json"
