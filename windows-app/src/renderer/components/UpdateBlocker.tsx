@@ -1,20 +1,16 @@
 import React from 'react'
 import { tokens } from '../theme/tokens'
 import { GlassButton } from './GlassButton'
-import { DownloadSimple, WarningOctagon } from '@phosphor-icons/react'
-import type { AppVersionInfo } from '../services/useUpdateChecker'
+import { WarningOctagon, ArrowSquareOut } from '@phosphor-icons/react'
 
 interface UpdateBlockerProps {
-  info: AppVersionInfo
+  info: { version: string; url: string; notes: string }
   currentVersion: string
-  downloading: boolean
-  progress: number | null
-  error: string
-  onUpdateNow: () => void
+  onOpenRelease: () => void
 }
 
 export const UpdateBlocker: React.FC<UpdateBlockerProps> = ({
-  info, currentVersion, downloading, progress, error, onUpdateNow,
+  info, currentVersion, onOpenRelease,
 }) => {
   return (
     <div style={{
@@ -39,12 +35,11 @@ export const UpdateBlocker: React.FC<UpdateBlockerProps> = ({
           fontSize: tokens.font.size.xxl, fontWeight: tokens.font.weight.bold,
           color: tokens.colors.text, marginBottom: tokens.spacing.sm,
         }}>
-          Aggiornamento richiesto
+          Aggiornamento disponibile
         </div>
         <div style={{ fontSize: tokens.font.size.md, color: tokens.colors.textSecondary, lineHeight: 1.6, marginBottom: tokens.spacing.lg }}>
           È disponibile la versione <b style={{ color: tokens.colors.text }}>{info.version}</b>
           {currentVersion && <> (stai usando la v{currentVersion})</>}.
-          Questo aggiornamento è obbligatorio per continuare a usare l&apos;app.
         </div>
         {info.notes && (
           <div style={{
@@ -56,47 +51,13 @@ export const UpdateBlocker: React.FC<UpdateBlockerProps> = ({
             {info.notes}
           </div>
         )}
-        {downloading && (
-          <div style={{ marginBottom: tokens.spacing.lg }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary,
-              marginBottom: 6,
-            }}>
-              <span>{progress != null && progress >= 100 ? 'Download completato, avvio installazione...' : 'Download in corso...'}</span>
-              <span style={{ fontWeight: tokens.font.weight.semibold, color: tokens.colors.text }}>
-                {progress != null ? `${progress}%` : ''}
-              </span>
-            </div>
-            <div style={{
-              height: 8, background: tokens.colors.surface,
-              borderRadius: tokens.radius.full, overflow: 'hidden',
-            }}>
-              <div style={{
-                height: '100%', width: `${progress ?? 0}%`,
-                background: `linear-gradient(90deg, ${tokens.colors.primary}, ${tokens.colors.primaryHover})`,
-                borderRadius: tokens.radius.full,
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
-          </div>
-        )}
-        {error && (
-          <div style={{
-            fontSize: tokens.font.size.sm, color: tokens.colors.danger,
-            fontWeight: tokens.font.weight.semibold, marginBottom: tokens.spacing.md,
-          }}>
-            {error}
-          </div>
-        )}
-        <GlassButton size="lg" onClick={onUpdateNow} disabled={downloading}
+        <GlassButton size="lg" onClick={onOpenRelease}
           style={{ width: '100%', justifyContent: 'center' }}>
-          {downloading
-            ? (progress != null ? `Scaricamento... ${progress}%` : 'Avvio download...')
-            : (<><DownloadSimple size={20} weight="fill" /> Aggiorna ora</>)}
+          <ArrowSquareOut size={20} weight="fill" />
+          <span>Apri pagina release su GitHub</span>
         </GlassButton>
         <div style={{ fontSize: tokens.font.size.xs, color: tokens.colors.textMuted, marginTop: tokens.spacing.md }}>
-          Al termine del download l&apos;app si chiuderà da sola e l&apos;installer si avvierà automaticamente.
+          Verrai reindirizzato alla pagina della release su GitHub per scaricare l'installer.
         </div>
       </div>
     </div>

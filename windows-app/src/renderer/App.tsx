@@ -18,6 +18,7 @@ import { api } from './api'
 import { useUpdateChecker } from './services/useUpdateChecker'
 import { UpdateBanner } from './components/UpdateBanner'
 import { UpdateBlocker } from './components/UpdateBlocker'
+
 import { CartProvider, CartButton, CartDrawer } from './context/CartContext'
 import {
   ChartBar, ClipboardText, Package, Storefront, User, CurrencyEur,
@@ -91,15 +92,12 @@ export default function App() {
     return <LoginScreen onLogin={handleLogin} />
   }
 
-  if (update.info?.mandatory) {
+  if (update.info && update.info.mandatory) {
     return (
       <UpdateBlocker
         info={update.info}
         currentVersion={update.currentVersion}
-        downloading={update.downloading}
-        progress={update.progress}
-        error={update.error}
-        onUpdateNow={update.updateNow}
+        onOpenRelease={update.openReleasePage}
       />
     )
   }
@@ -131,9 +129,7 @@ export default function App() {
           <UpdateBanner
             info={update.info}
             currentVersion={update.currentVersion}
-            downloading={update.downloading}
-            error={update.error}
-            onUpdateNow={update.updateNow}
+            onOpenRelease={update.openReleasePage}
             onDismiss={update.dismiss}
           />
         )}

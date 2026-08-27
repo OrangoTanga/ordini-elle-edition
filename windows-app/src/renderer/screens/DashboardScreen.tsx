@@ -5,8 +5,8 @@ import { GlassButton } from '../components/GlassButton'
 import { StatCard } from '../components/StatCard'
 import { OrderCard } from '../components/OrderCard'
 import { Badge } from '../components/Badge'
-import { api } from '../api'
-import { ChartBar, Clock, CheckCircle, XCircle, ArrowClockwise, Database, WifiHigh } from '@phosphor-icons/react'
+import { useUpdateChecker } from '../services/useUpdateChecker'
+import { ChartBar, Clock, CheckCircle, XCircle, ArrowClockwise, Database, WifiHigh, ArrowDown, DownloadSimple } from '@phosphor-icons/react'
 
 interface DashboardProps {
   onPendingCountChange: (count: number) => void
@@ -17,6 +17,7 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ onPendingCountChange
   const [expandedOrder, setExpandedOrder] = useState<number | null>(null)
   const [error, setError] = useState('')
   const [cloudOnline, setCloudOnline] = useState<boolean | null>(null)
+  const update = useUpdateChecker('windows')
 
   useEffect(() => {
     fetchStats()
@@ -192,6 +193,12 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ onPendingCountChange
                   <span style={{ fontWeight: tokens.font.weight.semibold, color: item.color }}>{item.value}</span>
                 </div>
               ))}
+              <div style={{ borderTop: `1px solid ${tokens.colors.border}`, paddingTop: tokens.spacing.md, marginTop: tokens.spacing.sm }}>
+                <GlassButton variant="outline" size="sm" onClick={() => window.electron?.shell?.openExternal?.('https://github.com/OrangoTanga/ordini-elle-edition/releases/latest')} style={{ width: '100%', justifyContent: 'center' }}>
+                  <ArrowDown size={14} weight="fill" />
+                  Verifica aggiornamenti
+                </GlassButton>
+              </div>
             </div>
           </GlassCard>
 

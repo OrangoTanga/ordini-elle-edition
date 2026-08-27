@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { api } from '../api'
 
 // CONFIG: imposta qui il tuo repo GitHub (owner/repo)
 const GITHUB_REPO = 'OrangoTanga/ordini-elle-edition'
@@ -54,37 +53,29 @@ function comparePre(a: string[], b: string[]): -1 | 0 | 1 {
   return 0
 }
 
-// Fetch versione da GitHub Releases (app-versions.json asset)
-async function fetchFromGitHub(platform: 'windows' | 'android'): Promise<AppVersionInfo | null> {
+// Fetch versione da GitHub Releases API
+async function fetchLatestRelease(): Promise<{ version: string; url: string; notes: string } | null> {
   try {
-    const res = await fetch(`https://github.com/${GITHUB_REPO}/releases/latest/download/app-versions.json`, {
-      headers: { 'Accept': 'application/json' },
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`, {
+      headers: { 'Accept': 'application/vnd.github.v3+json' },
       cache: 'no-cache'
     })
     if (!res.ok) return null
     const data = await res.json()
-    return data[platform] || null
+    const version = data.tag_name?.replace(/^v/, '')
+    const url = data.html_url
+    const notes = data.body || ''
+    if (!version) return null
+    return { version, url, notes }
   } catch {
     return null
   }
 }
 
-// Fetch versione dal worker locale (se configurato)
-async function fetchFromWorker(platform: 'windows' | 'android'): Promise<AppVersionInfo | null> {
-  try {
-    const res = await api.appVersions.get(platform)
-    if (res.success && res.data) return res.data
-  } catch { /* ignora */ }
-  return null
-}
-
 export function useUpdateChecker(platform: 'windows' | 'android') {
-  const [info, setInfo] = useState<AppVersionInfo | null>(null)
+  const [info, setInfo] = useState<{ version: string; url: string; notes: string } | null>(null)
   const [currentVersion, setCurrentVersion] = useState('')
   const [dismissed, setDismissed] = useState(false)
-  const [downloading, setDownloading] = useState(false)
-  const [progress, setProgress] = useState<number | null>(null)
-  const [error, setError] = useState('')
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -96,12 +87,10 @@ export function useUpdateChecker(platform: 'windows' | 'android') {
         if (!version) return
         setCurrentVersion(version)
 
-        // Prova prima GitHub Releases, poi fallback al worker
-        let latest = await fetchFromGitHub(platform)
-        if (!latest) latest = await fetchFromWorker(platform)
-        if (cancelled) return
+        const latest = await fetchLatestRelease()
+        if (cancelled || !latest) return
 
-        if (latest && latest.version && compareVersions(version, latest.version) < 0) {
+        if (compareVersions(version, latest.version) < 0) {
           setInfo(latest)
         }
       } catch { /* silenzioso: un errore di rete non blocca l'app */ }
@@ -115,36 +104,13 @@ export function useUpdateChecker(platform: 'windows' | 'android') {
     }
   }, [platform])
 
-  useEffect(() => {
-    window.electron?.ipcRenderer.on('update:progress', (data: any) => {
-      if (data && typeof data.percent === 'number') setProgress(data.percent)
-    })
-    return () => {
-      window.electron?.ipcRenderer.removeAllListeners('update:progress')
-    }
-  }, [])
-
   const dismiss = () => setDismissed(true)
 
-  const updateNow = async () => {
-    if (!info?.url || downloading) return
-    setDownloading(true)
-    setProgress(null)
-    setError('')
-    try {
-      const result = await window.electron?.downloadAndInstallUpdate(info.url)
-      if (!result?.ok) {
-        setError(result?.error || 'Download fallito')
-        setProgress(null)
-      } else {
-        setProgress(100)
-      }
-    } catch {
-      setError('Impossibile avviare il download')
-      setProgress(null)
+  const openReleasePage = () => {
+    if (info?.url) {
+      window.electron?.shell?.openExternal?.(info.url)
     }
-    setDownloading(false)
   }
 
-  return { info, currentVersion, dismissed, downloading, progress, error, dismiss, updateNow }
+  return { info, currentVersion, dismissed, dismiss, openReleasePage }
 }
