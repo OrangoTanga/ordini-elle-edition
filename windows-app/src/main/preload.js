@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, shell } = require('electron')
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld('electron', {
   },
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
   downloadAndInstallUpdate: (url) => ipcRenderer.invoke('update:downloadAndInstall', url),
+  shell: {
+    openExternal: (url) => shell.openExternal(url),
+  },
 })
