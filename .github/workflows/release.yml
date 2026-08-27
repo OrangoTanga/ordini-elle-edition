@@ -68,27 +68,27 @@ jobs:
       - name: Update app-versions.json for OTA
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         run: |
-          const version = "${{ github.event.inputs.version || github.ref_name }}".replace(/^v/, '');
-          const repo = "${{ github.repository }}";
-          const tag = "${{ github.event.inputs.version || github.ref_name }}";
-          const fs = require('fs');
-          const data = {
-            windows: {
-              version: version,
-              url: `https://github.com/${repo}/releases/download/${tag}/Ordini%20Elly%20Edition%20Setup%20${version}.exe`,
-              mandatory: true,
-              notes: "Aggiornamento obbligatorio - Nuova versione 1.2.0 con miglioramenti stabilità e sistema aggiornamenti"
-            },
-            android: {
-              version: "1.2.0",
-              url: `https://github.com/${repo.replace('ordini-elle-edition', 'ordini-elle-android')}/releases/download/${tag}/app-release.apk`,
-              mandatory: true,
-              notes: "Aggiornamento obbligatorio - Nuova versione 1.2.0 con tasto verifica aggiornamenti in Profilo"
+          $version = "${{ github.event.inputs.version || github.ref_name }}".TrimStart('v')
+          $repo = "${{ github.repository }}"
+          $tag = "${{ github.event.inputs.version || github.ref_name }}"
+          $androidRepo = $repo -replace 'ordini-elle-edition', 'ordini-elle-android'
+          $data = @{
+            windows = @{
+              version = $version
+              url = "https://github.com/$repo/releases/download/$tag/Ordini%20Elly%20Edition%20Setup%20$version.exe"
+              mandatory = $true
+              notes = "Aggiornamento obbligatorio - Nuova versione 1.2.0 con miglioramenti stabilità e sistema aggiornamenti"
             }
-          };
-          fs.writeFileSync('app-versions.json', JSON.stringify(data, null, 2));
-          console.log('app-versions.json created with mandatory updates');
-        shell: node
+            android = @{
+              version = "1.2.0"
+              url = "https://github.com/$androidRepo/releases/download/$tag/app-release.apk"
+              mandatory = $true
+              notes = "Aggiornamento obbligatorio - Nuova versione 1.2.0 con tasto verifica aggiornamenti in Profilo"
+            }
+          }
+          $data | ConvertTo-Json -Depth 5 | Out-File -Encoding utf8 app-versions.json
+          Write-Host "app-versions.json created with mandatory updates"
+        shell: pwsh
 
       - name: Upload app-versions.json as release asset
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
