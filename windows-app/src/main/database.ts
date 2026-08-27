@@ -218,8 +218,13 @@ function runMigrations(): void {
   `)
 
   // Schema updates for payments (migration 0005)
-  db.run(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'rep'`)
-  const orderCols = db.exec('PRAGMA table_info(orders)').map((r: any) => r[1])
+  const userColsResult = db.exec('PRAGMA table_info(users)')
+  const userCols = userColsResult[0]?.values?.map((v: any[]) => v[1]) || []
+  if (!userCols.includes('role')) {
+    db.run(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'rep'`)
+  }
+  const orderColsResult = db.exec('PRAGMA table_info(orders)')
+  const orderCols = orderColsResult[0]?.values?.map((v: any[]) => v[1]) || []
   if (!orderCols.includes('payment_type')) {
     db.run(`ALTER TABLE orders ADD COLUMN payment_type TEXT NOT NULL DEFAULT 'dilazionato'`)
     db.run(`ALTER TABLE orders ADD COLUMN payment_days INTEGER DEFAULT 30`)
@@ -307,19 +312,22 @@ function runMigrations(): void {
   `)
 
   // Migration: add pieces_per_case to products if missing
-  const prodCols = db.exec('PRAGMA table_info(products)').map((r: any) => r[1])
+  const prodColsResult = db.exec('PRAGMA table_info(products)')
+  const prodCols = prodColsResult[0]?.values?.map((v: any[]) => v[1]) || []
   if (!prodCols.includes('pieces_per_case')) {
     db.run(`ALTER TABLE products ADD COLUMN pieces_per_case INTEGER DEFAULT 1`)
   }
 
   // Migration: add pieces_per_case to order_items if missing
-  const oiCols = db.exec('PRAGMA table_info(order_items)').map((r: any) => r[1])
+  const oiColsResult = db.exec('PRAGMA table_info(order_items)')
+  const oiCols = oiColsResult[0]?.values?.map((v: any[]) => v[1]) || []
   if (!oiCols.includes('pieces_per_case')) {
     db.run(`ALTER TABLE order_items ADD COLUMN pieces_per_case INTEGER DEFAULT 1`)
   }
 
   // Migration: add delivered_date, paid_date to orders if missing
-  const orderCols2 = db.exec('PRAGMA table_info(orders)').map((r: any) => r[1])
+  const orderColsResult2 = db.exec('PRAGMA table_info(orders)')
+  const orderCols2 = orderColsResult2[0]?.values?.map((v: any[]) => v[1]) || []
   if (!orderCols2.includes('delivered_date')) {
     db.run(`ALTER TABLE orders ADD COLUMN delivered_date TEXT DEFAULT NULL`)
   }
