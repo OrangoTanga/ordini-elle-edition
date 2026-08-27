@@ -5,6 +5,10 @@
   "main": "dist/main.js",
   "author": "Elly Edition",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OrangoTanga/ordini-elle-edition.git"
+  },
   "scripts": {
     "dev": "npm run dev:kill-5173 && concurrently -k \"npm run dev:main\" \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:main": "tsc -p tsconfig.main.json --watch",
