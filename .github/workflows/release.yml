@@ -38,10 +38,6 @@ jobs:
         working-directory: windows-app
         run: npm run build
 
-      - name: Generate icons
-        working-directory: windows-app
-        run: npm run icons
-
       - name: Package installer (NSIS)
         working-directory: windows-app
         run: npm run dist
