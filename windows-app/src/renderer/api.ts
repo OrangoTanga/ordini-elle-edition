@@ -16,6 +16,10 @@ export function getApiUrl(): string {
   if (stored) return stored
 
   const isDev = typeof location !== 'undefined' && location.hostname === 'localhost'
+  // Prefer local server when available (installed app on Windows)
+  if (!isDev && typeof window !== 'undefined' && window.electron) {
+    return 'http://localhost:3899'
+  }
   return isDev ? DEV_PROXY : WORKER_URL
 }
 

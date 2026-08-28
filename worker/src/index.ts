@@ -19,7 +19,7 @@ import { handleListCategories, handleCreateCategory, handleRenameCategory, handl
 
 const ALLOWED_ORIGINS = ['*']
 const MAX_BODY_SIZE = 1024 * 1024 * 2
-const RATE_LIMIT_MAX = 20
+const RATE_LIMIT_MAX = 200
 const RATE_LIMIT_WINDOW_MS = 60000
 
 const rateLimitMap = new Map<string, { count: number; windowStart: number }>()
