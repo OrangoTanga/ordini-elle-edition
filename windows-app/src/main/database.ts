@@ -223,6 +223,14 @@ function runMigrations(): void {
     )
   `)
   db.run(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `)
+  db.run(`
     CREATE TABLE IF NOT EXISTS listini (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

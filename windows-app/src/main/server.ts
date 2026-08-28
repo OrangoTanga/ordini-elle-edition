@@ -13,6 +13,7 @@ import { productCommissionOverridesRouter } from './routes/productCommissionOver
 import { purgeRouter } from './purgeController'
 import { settingsRouter } from './routes/settings'
 import { listiniRouter } from './routes/listini'
+import { categoriesRouter } from './routes/categories'
 
 const PORT = 3899
 
@@ -36,6 +37,7 @@ export async function startServer(): Promise<http.Server> {
   app.use('/api/purge', purgeRouter)
   app.use('/api/settings', settingsRouter)
   app.use('/api/listini', listiniRouter)
+  app.use('/api/categories', categoriesRouter)
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() })
