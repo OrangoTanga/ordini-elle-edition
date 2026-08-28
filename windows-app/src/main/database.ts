@@ -223,6 +223,48 @@ function runMigrations(): void {
     )
   `)
   db.run(`
+    CREATE TABLE IF NOT EXISTS listini (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      commission_percent REAL NOT NULL DEFAULT 0,
+      payment_terms TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    )
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS listino_prices (
+      product_id INTEGER NOT NULL,
+      listino_id INTEGER NOT NULL,
+      price REAL NOT NULL,
+      PRIMARY KEY (product_id, listino_id),
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+      FOREIGN KEY (listino_id) REFERENCES listini(id) ON DELETE CASCADE
+    )
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS commission_exceptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      listino_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      commission_percent REAL NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (listino_id) REFERENCES listini(id) ON DELETE CASCADE
+    )
+  `)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS product_commission_overrides (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      listino_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      commission_percent REAL NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(listino_id, product_id),
+      FOREIGN KEY (listino_id) REFERENCES listini(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    )
+  `)
+  db.run(`
     CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -381,6 +423,19 @@ function runMigrations(): void {
     stmt.bind(['admin', hash, 'Amministratore'])
     stmt.step()
     stmt.free()
+  }
+
+  // Seed default listini if missing
+  const listiniCount = db.exec('SELECT COUNT(*) as cnt FROM listini')
+  const lc = listiniCount?.[0]?.values?.[0]?.[0] ?? 0
+  if (lc === 0) {
+    const now = new Date().toISOString()
+    db.run(`INSERT INTO listini (name, commission_percent, payment_terms, sort_order, created_at) VALUES (?, ?, ?, ?, ?)`,
+      ['Listino Dettaglio', 15, '30 giorni', 1, now])
+    db.run(`INSERT INTO listini (name, commission_percent, payment_terms, sort_order, created_at) VALUES (?, ?, ?, ?, ?)`,
+      ['Listino Horeca', 12, '60 giorni', 2, now])
+    db.run(`INSERT INTO listini (name, commission_percent, payment_terms, sort_order, created_at) VALUES (?, ?, ?, ?, ?)`,
+      ['Listino Ingrosso', 10, '90 giorni', 3, now])
   }
 }
 
