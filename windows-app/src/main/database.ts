@@ -133,23 +133,50 @@ export async function initDatabase(): Promise<void> {
   const appDataDir = path.join(userDataPath, 'Ordini Elly Edition')
   DB_PATH = path.join(appDataDir, 'ordini.db')
   
-  if (!fs.existsSync(appDataDir)) {
-    fs.mkdirSync(appDataDir, { recursive: true })
+  try {
+    if (!fs.existsSync(appDataDir)) {
+      fs.mkdirSync(appDataDir, { recursive: true })
+    }
+  } catch (mkdirErr) {
+    console.error('[Database] Failed to create app data directory:', mkdirErr)
+    // Fallback to temp directory
+    DB_PATH = path.join(require('os').tmpdir(), 'Ordini Elly Edition', 'ordini.db')
+    const fallbackDir = path.dirname(DB_PATH)
+    if (!fs.existsSync(fallbackDir)) {
+      fs.mkdirSync(fallbackDir, { recursive: true })
+    }
   }
 
   // If database doesn't exist in userData, copy from bundled resource
   if (!fs.existsSync(DB_PATH)) {
     const bundledDbPath = path.join(__dirname, '../../database/ordini.db')
-    if (fs.existsSync(bundledDbPath)) {
-      fs.copyFileSync(bundledDbPath, DB_PATH)
-    } else {
-      // Create fresh database if no bundled version
+    try {
+      if (fs.existsSync(bundledDbPath)) {
+        fs.copyFileSync(bundledDbPath, DB_PATH)
+      } else {
+        // Create fresh database if no bundled version
+        db = new SQL.Database()
+        saveDb()
+      }
+    } catch (copyErr) {
+      console.error('[Database] Failed to copy bundled database, creating fresh:', copyErr)
       db = new SQL.Database()
       saveDb()
     }
   } else {
-    const buffer = fs.readFileSync(DB_PATH)
-    db = new SQL.Database(buffer)
+    try {
+      const buffer = fs.readFileSync(DB_PATH)
+      db = new SQL.Database(buffer)
+    } catch (readErr) {
+      console.error('[Database] Failed to read existing database, creating fresh:', readErr)
+      db = new SQL.Database()
+      saveDb()
+    }
+  }
+
+  if (!db) {
+    db = new SQL.Database()
+    saveDb()
   }
 
   db.run('PRAGMA foreign_keys = ON')

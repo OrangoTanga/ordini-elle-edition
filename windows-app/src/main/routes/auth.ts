@@ -22,7 +22,8 @@ authRouter.post('/login', (req, res) => {
     return
   }
 
-  const token = jwt.sign({ id: user.id, name: user.name }, JWT_SECRET, { expiresIn: '30d' })
+  const isAdmin = user.role === 'admin'
+  const token = jwt.sign({ id: user.id, name: user.name, isAdmin, role: user.role }, JWT_SECRET, { expiresIn: '30d' })
 
   res.json({
     success: true,
@@ -33,6 +34,8 @@ authRouter.post('/login', (req, res) => {
         username: user.username,
         name: user.name,
         phone: user.phone,
+        role: user.role,
+        isAdmin,
         active: Boolean(user.active),
         created_at: user.created_at,
       },
@@ -50,7 +53,7 @@ authRouter.post('/verify', (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any
-    res.json({ success: true, data: { valid: true, id: decoded.id, name: decoded.name } })
+    res.json({ success: true, data: { valid: true, id: decoded.id, name: decoded.name, isAdmin: decoded.isAdmin, role: decoded.role } })
   } catch {
     res.json({ success: true, data: { valid: false } })
   }
