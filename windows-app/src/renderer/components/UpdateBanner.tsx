@@ -1,19 +1,30 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { tokens } from '../theme/tokens'
 import { GlassButton } from './GlassButton'
-import { WarningCircle, ArrowSquareOut, X } from '@phosphor-icons/react'
+import { WarningCircle, ArrowSquareOut, X, DownloadSimple } from '@phosphor-icons/react'
 
 interface UpdateBannerProps {
   info: { version: string; url: string; notes: string } | null
   currentVersion: string
   onOpenRelease: () => void
+  onDownload: () => void
   onDismiss: () => void
 }
 
 export const UpdateBanner: React.FC<UpdateBannerProps> = ({
-  info, currentVersion, onOpenRelease, onDismiss,
+  info, currentVersion, onOpenRelease, onDownload, onDismiss,
 }) => {
   if (!info) return null
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    const result = await onDownload()
+    if (!result?.ok) {
+      console.error('Download fallito:', result?.error)
+    }
+    setDownloading(false)
+  }
 
   return (
     <div style={{
@@ -42,6 +53,20 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({
         <ArrowSquareOut size={16} weight="fill" />
         Apri pagina release
       </GlassButton>
+      <GlassButton size="sm" onClick={handleDownload} disabled={downloading}
+        style={{ background: '#10B981', color: '#fff', border: 'none', boxShadow: 'none' }}>
+        {downloading ? (
+          <>
+            <DownloadSimple size={16} weight="fill" style={{ animation: 'spin 1s linear infinite' }} />
+            Scaricamento...
+          </>
+        ) : (
+          <>
+            <DownloadSimple size={16} weight="fill" />
+            Scarica ora
+          </>
+        )}
+      </GlassButton>
       <button
         onClick={onDismiss}
         style={{
@@ -51,6 +76,9 @@ export const UpdateBanner: React.FC<UpdateBannerProps> = ({
       >
         <X size={20} />
       </button>
+      <style jsx>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   )
 }

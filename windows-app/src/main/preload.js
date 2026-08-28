@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electron', {
   },
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
   downloadAndInstallUpdate: (url) => ipcRenderer.invoke('update:downloadAndInstall', url),
+  downloadUpdate: (url) => ipcRenderer.invoke('update:download', url),
   shell: {
     openExternal: (url) => shell.openExternal(url),
   },

@@ -99,5 +99,10 @@ export function useUpdateChecker(platform: 'windows' | 'android') {
     }
   }
 
-  return { info, currentVersion, dismissed, dismiss, openReleasePage }
+  const downloadUpdate = async () => {
+    if (!info?.url) return { ok: false, error: 'Nessun URL di download' }
+    return window.electron?.downloadUpdate?.(info.url) || { ok: false, error: 'Download non disponibile' }
+  }
+
+  return { info, currentVersion, dismissed, dismiss, openReleasePage, downloadUpdate }
 }

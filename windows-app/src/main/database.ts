@@ -128,17 +128,28 @@ let wrappedDb: DbWrapper
 export async function initDatabase(): Promise<void> {
   SQL = await initSqlJs()
 
-  DB_PATH = path.join(__dirname, '../../database/ordini.db')
-  const dir = path.dirname(DB_PATH)
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true })
+  // Use userData directory for writable database (cross-platform)
+  const userDataPath = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME || '', 'Library', 'Application Support') : path.join(process.env.HOME || '', '.config'))
+  const appDataDir = path.join(userDataPath, 'Ordini Elly Edition')
+  DB_PATH = path.join(appDataDir, 'ordini.db')
+  
+  if (!fs.existsSync(appDataDir)) {
+    fs.mkdirSync(appDataDir, { recursive: true })
   }
 
-  if (fs.existsSync(DB_PATH)) {
+  // If database doesn't exist in userData, copy from bundled resource
+  if (!fs.existsSync(DB_PATH)) {
+    const bundledDbPath = path.join(__dirname, '../../database/ordini.db')
+    if (fs.existsSync(bundledDbPath)) {
+      fs.copyFileSync(bundledDbPath, DB_PATH)
+    } else {
+      // Create fresh database if no bundled version
+      db = new SQL.Database()
+      saveDb()
+    }
+  } else {
     const buffer = fs.readFileSync(DB_PATH)
     db = new SQL.Database(buffer)
-  } else {
-    db = new SQL.Database()
   }
 
   db.run('PRAGMA foreign_keys = ON')

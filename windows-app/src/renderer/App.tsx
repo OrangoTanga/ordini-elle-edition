@@ -98,6 +98,7 @@ export default function App() {
         info={update.info}
         currentVersion={update.currentVersion}
         onOpenRelease={update.openReleasePage}
+        onDownload={update.downloadUpdate}
       />
     )
   }
@@ -130,6 +131,7 @@ export default function App() {
             info={update.info}
             currentVersion={update.currentVersion}
             onOpenRelease={update.openReleasePage}
+            onDownload={update.downloadUpdate}
             onDismiss={update.dismiss}
           />
         )}

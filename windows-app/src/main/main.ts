@@ -194,6 +194,41 @@ function setupIPC(): void {
       return { ok: false, error: msg }
     }
   })
+
+  // Solo download + avvio installer (per bottone "Scarica ora" in banner)
+  ipcMain.handle('update:download', async (_event, url: string) => {
+    if (typeof url !== 'string' || !/^https:\/\//.test(url)) {
+      return { ok: false, error: 'URL di download non valido' }
+    }
+    const basename = url.split('/').pop() || 'update.exe'
+    if (!/^[A-Za-z0-9._\-]+$/.test(basename)) {
+      return { ok: false, error: 'Nome file di aggiornamento non valido' }
+    }
+    const dest = path.join(app.getPath('temp'), basename)
+    const sendProgress = (received: number, total: number) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update:progress', {
+          received,
+          total,
+          percent: Math.min(100, Math.round((received / total) * 100)),
+        })
+      }
+    }
+    try {
+      await downloadFile(url, dest, sendProgress)
+      sendProgress(1, 1)
+      const child = spawn(dest, [], { detached: true, stdio: 'ignore' })
+      child.on('error', (err) => {
+        console.error('[Updater] Avvio installer fallito:', err)
+      })
+      child.unref()
+      setTimeout(() => app.quit(), 800)
+      return { ok: true }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Download fallito'
+      return { ok: false, error: msg }
+    }
+  })
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
