@@ -5,7 +5,7 @@ import { GlassButton } from '../components/GlassButton'
 import { Badge } from '../components/Badge'
 import { getApiUrl, setApiUrl, resetApiUrl, isUsingCustomUrl, api } from '../api'
 import { toast } from '../components/Toast'
-import { Cloud, PencilSimple, ArrowClockwise, SignOut, CheckCircle, XCircle, TrashSimple, FileX, Clock, Warning, UploadSimple, Tag, Plus } from '@phosphor-icons/react'
+import { Cloud, PencilSimple, ArrowClockwise, SignOut, CheckCircle, XCircle, TrashSimple, FileX, Clock, Warning, Tag, Plus } from '@phosphor-icons/react'
 import { useCategories, Category } from '../services/useCategories'
 
 interface SettingsScreenProps {
@@ -27,12 +27,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onLogout }) => {
   const [purging, setPurging] = useState(false)
   const [purgeMessage, setPurgeMessage] = useState('')
   const [purgeError, setPurgeError] = useState('')
-
-  // Release state (admin)
-  const [relWin, setRelWin] = useState({ version: '', url: '', mandatory: false, notes: '' })
-  const [relAndroid, setRelAndroid] = useState({ version: '', url: '', mandatory: false, notes: '' })
-  const [releasesMessage, setReleasesMessage] = useState('')
-  const [releasesError, setReleasesError] = useState('')
 
   // Categories state (admin)
   const [catList, setCatList] = useState<Category[]>([])
@@ -104,51 +98,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onLogout }) => {
     checkConnection()
     loadPurgeConfig()
     loadPurgeHistory()
-    loadReleases()
     loadCategories()
   }, [workerUrl])
-
-  const loadReleases = async () => {
-    const res = await api.settings.get()
-    if (res.success && res.data) {
-      const s = res.data
-      setRelWin({
-        version: s.app_version_windows || '',
-        url: s.app_download_url_windows || '',
-        mandatory: s.app_mandatory_windows === 'true',
-        notes: s.app_notes_windows || '',
-      })
-      setRelAndroid({
-        version: s.app_version_android || '',
-        url: s.app_download_url_android || '',
-        mandatory: s.app_mandatory_android === 'true',
-        notes: s.app_notes_android || '',
-      })
-    }
-  }
-
-  const handleSaveReleases = async () => {
-    const updates: Record<string, string> = {
-      app_version_windows: relWin.version.trim(),
-      app_download_url_windows: relWin.url.trim(),
-      app_mandatory_windows: relWin.mandatory ? 'true' : 'false',
-      app_notes_windows: relWin.notes.trim(),
-      app_version_android: relAndroid.version.trim(),
-      app_download_url_android: relAndroid.url.trim(),
-      app_mandatory_android: relAndroid.mandatory ? 'true' : 'false',
-      app_notes_android: relAndroid.notes.trim(),
-    }
-    const res = await api.settings.update(updates)
-    setReleasesMessage('')
-    setReleasesError('')
-    if (res.success) {
-      setReleasesMessage('Release salvate')
-      setTimeout(() => setReleasesMessage(''), 3000)
-    } else {
-      setReleasesError(res.error || 'Errore')
-      setTimeout(() => setReleasesError(''), 4000)
-    }
-  }
 
   const checkConnection = async () => {
     const ok = await api.health()
@@ -507,85 +458,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onLogout }) => {
             ))}
           </div>
         )}
-      </GlassCard>
-
-      <GlassCard>
-        <div style={sectionTitle}>
-          <UploadSimple size={20} color={tokens.colors.accent} />
-          Rilasci App
-        </div>
-        <div style={sectionDesc}>
-          Versione attiva di Windows e Android. Le app mostrano un avviso quando la versione installata è inferiore. Se l&apos;aggiornamento è obbligatorio, l&apos;app blocca l&apos;accesso finché non viene aggiornata.
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: tokens.spacing.sm, color: tokens.colors.text, fontSize: tokens.font.size.md, fontWeight: tokens.font.weight.semibold }}>
-          Windows (Electron)
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing.md, marginBottom: tokens.spacing.sm }}>
-          <div>
-            <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary, marginBottom: 4 }}>Versione (es. 1.0.1)</div>
-            <input value={relWin.version} onChange={e => setRelWin({ ...relWin, version: e.target.value })} style={inputS} />
-          </div>
-          <div>
-            <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary, marginBottom: 4 }}>URL installer (.exe)</div>
-            <input value={relWin.url} onChange={e => setRelWin({ ...relWin, url: e.target.value })} style={inputS} placeholder="https://.../releases/apps/windows/..." />
-          </div>
-        </div>
-        <div style={{ marginBottom: tokens.spacing.sm }}>
-          <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary, marginBottom: 4 }}>Note rilascio (opzionale)</div>
-          <input value={relWin.notes} onChange={e => setRelWin({ ...relWin, notes: e.target.value })} style={inputS} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: tokens.spacing.md, marginBottom: tokens.spacing.lg, borderBottom: `1px solid ${tokens.colors.border}` }}>
-          <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary }}>
-            Aggiornamento obbligatorio per Windows
-          </div>
-          <button style={{ ...toggleS, background: relWin.mandatory ? tokens.colors.primary : tokens.colors.border }} onClick={() => setRelWin({ ...relWin, mandatory: !relWin.mandatory })}>
-            <div style={{ ...toggleDotS, left: relWin.mandatory ? 23 : 3 }} />
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: tokens.spacing.sm, color: tokens.colors.text, fontSize: tokens.font.size.md, fontWeight: tokens.font.weight.semibold }}>
-          Android (APK)
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: tokens.spacing.md, marginBottom: tokens.spacing.sm }}>
-          <div>
-            <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary, marginBottom: 4 }}>Versione (es. 1.0.1)</div>
-            <input value={relAndroid.version} onChange={e => setRelAndroid({ ...relAndroid, version: e.target.value })} style={inputS} />
-          </div>
-          <div>
-            <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary, marginBottom: 4 }}>URL APK</div>
-            <input value={relAndroid.url} onChange={e => setRelAndroid({ ...relAndroid, url: e.target.value })} style={inputS} placeholder="https://.../releases/apps/android/..." />
-          </div>
-        </div>
-        <div style={{ marginBottom: tokens.spacing.sm }}>
-          <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary, marginBottom: 4 }}>Note rilascio (opzionale)</div>
-          <input value={relAndroid.notes} onChange={e => setRelAndroid({ ...relAndroid, notes: e.target.value })} style={inputS} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: tokens.spacing.md, marginBottom: tokens.spacing.md, borderBottom: `1px solid ${tokens.colors.border}` }}>
-          <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.textSecondary }}>
-            Aggiornamento obbligatorio per Android
-          </div>
-          <button style={{ ...toggleS, background: relAndroid.mandatory ? tokens.colors.primary : tokens.colors.border }} onClick={() => setRelAndroid({ ...relAndroid, mandatory: !relAndroid.mandatory })}>
-            <div style={{ ...toggleDotS, left: relAndroid.mandatory ? 23 : 3 }} />
-          </button>
-        </div>
-
-        {releasesMessage && (
-          <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.accent, marginBottom: tokens.spacing.sm }}>
-            <CheckCircle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-            {releasesMessage}
-          </div>
-        )}
-        {releasesError && (
-          <div style={{ fontSize: tokens.font.size.sm, color: tokens.colors.danger, marginBottom: tokens.spacing.sm }}>
-            <Warning size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-            {releasesError}
-          </div>
-        )}
-        <GlassButton size="sm" onClick={handleSaveReleases}>
-          <CheckCircle size={14} weight="bold" />
-          Salva release
-        </GlassButton>
       </GlassCard>
 
       <GlassCard>
