@@ -5,6 +5,7 @@ import https from 'https'
 import { spawn } from 'child_process'
 import { startServer, stopServer } from './server'
 import { startScheduler, stopScheduler } from './scheduler'
+import { stopTunnel } from './tunnelManager'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -180,14 +181,19 @@ function setupIPC(): void {
     try {
       await downloadFile(url, dest, sendProgress)
       sendProgress(1, 1)
-      // Avvia l'installer staccato, poi chiudi l'app: senza chiusura i file restano
-      // bloccati e NSIS non puo' completare l'aggiornamento.
-      const child = spawn(dest, [], { detached: true, stdio: 'ignore' })
+      // Avvia l'installer NSIS in modalita' auto-update. L'argomento --updated
+      // dice all'installer che l'app e' in esecuzione: NSIS attende la chiusura
+      // dell'app prima di sovrascrivere i file e, al termine, la rilancia.
+      // Senza --updated l'installer prova a sovrascrivere subito e fallisce con
+      // "l'app non puo' essere chiusa".
+      const child = spawn(dest, ['--updated'], { detached: true, stdio: 'ignore' })
       child.on('error', (err) => {
         console.error('[Updater] Avvio installer fallito:', err)
       })
       child.unref()
-      setTimeout(() => app.quit(), 800)
+      // Chiude subito l'app (non con ritardo): NSIS --updated attende la
+      // chiusura, quindi piu' in fretta termina, piu' in fretta installa.
+      app.quit()
       return { ok: true }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Download fallito'
@@ -217,12 +223,13 @@ function setupIPC(): void {
     try {
       await downloadFile(url, dest, sendProgress)
       sendProgress(1, 1)
-      const child = spawn(dest, [], { detached: true, stdio: 'ignore' })
+      // Vedi commento in update:downloadAndInstall: serve --updated.
+      const child = spawn(dest, ['--updated'], { detached: true, stdio: 'ignore' })
       child.on('error', (err) => {
         console.error('[Updater] Avvio installer fallito:', err)
       })
       child.unref()
-      setTimeout(() => app.quit(), 800)
+      app.quit()
       return { ok: true }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Download fallito'
@@ -251,12 +258,12 @@ if (!gotTheLock) {
     // occupata da un processo zombie) l'app resta comunque utilizzabile.
     createWindow()
     createTray()
-    startScheduler()
     try {
       await startServer()
     } catch (err) {
       console.error('[Main] Avvio server locale fallito:', err)
     }
+    startScheduler()
     console.log('[Main] Applicazione avviata')
   })
 }
@@ -271,4 +278,5 @@ app.on('before-quit', () => {
   isQuitting = true
   stopScheduler()
   stopServer()
+  stopTunnel()
 })

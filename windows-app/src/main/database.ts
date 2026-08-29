@@ -64,7 +64,6 @@ function wrapDb(): DbWrapper {
           if (params.length > 0) { stmt.bind(params); bound = true }
           stmt.step()
           stmt.reset()
-          saveDb()
           const rowidResult = db.exec('SELECT last_insert_rowid() as id')
           const changesResult = db.exec('SELECT changes() as ch')
           const lastInsertRowid = Number(rowidResult?.[0]?.values?.[0]?.[0] ?? 0)
@@ -113,12 +112,10 @@ function wrapDb(): DbWrapper {
 
     exec(sql: string): void {
       db.exec(sql)
-      saveDb()
     },
 
     run(sql: string): void {
       db.run(sql)
-      saveDb()
     },
   }
 }
@@ -427,10 +424,13 @@ function runMigrations(): void {
   const userCount = count?.[0]?.values?.[0]?.[0] ?? 0
   if (userCount === 0) {
     const hash = bcrypt.hashSync('admin123', 10)
-    const stmt = db.prepare('INSERT INTO users (username, password, name) VALUES (?, ?, ?)')
-    stmt.bind(['admin', hash, 'Amministratore'])
+    const stmt = db.prepare('INSERT INTO users (username, password, name, role) VALUES (?, ?, ?, ?)')
+    stmt.bind(['admin', hash, 'Amministratore', 'admin'])
     stmt.step()
     stmt.free()
+  } else {
+    // Ensure at least one admin exists
+    db.run(`UPDATE users SET role = 'admin' WHERE username = 'admin'`)
   }
 
   // Seed default listini if missing
@@ -449,6 +449,10 @@ function runMigrations(): void {
 
 export function getDb(): DbWrapper {
   return wrappedDb
+}
+
+export function persist(): void {
+  saveDb()
 }
 
 export function closeDatabase(): void {
