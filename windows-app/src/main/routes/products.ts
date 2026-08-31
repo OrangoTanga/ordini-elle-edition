@@ -9,7 +9,14 @@ productsRouter.use(authenticateToken)
 productsRouter.get('/', (_req: AuthRequest, res) => {
   const db = getDb()
   const products = db.prepare('SELECT * FROM products ORDER BY category, name').all()
-  res.json({ success: true, data: products })
+  const priceStmt = db.prepare(
+    'SELECT lp.listino_id, lp.price, l.name as listino_name FROM listino_prices lp JOIN listini l ON lp.listino_id = l.id WHERE lp.product_id = ? ORDER BY l.sort_order'
+  )
+  const data = products.map((p: any) => ({
+    ...p,
+    listino_prices: priceStmt.all(p.id),
+  }))
+  res.json({ success: true, data })
 })
 
 productsRouter.get('/:id', (req: AuthRequest, res) => {

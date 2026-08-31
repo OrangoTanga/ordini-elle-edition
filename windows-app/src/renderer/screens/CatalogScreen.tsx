@@ -51,6 +51,7 @@ export const CatalogScreen: React.FC = () => {
   const [removingBg, setRemovingBg] = useState(false)
   const [bgProgress, setBgProgress] = useState('')
   const [saving, setSaving] = useState(false)
+  const [addMenuProductId, setAddMenuProductId] = useState<number | null>(null)
   const { categories, refresh: refreshCategories } = useCategories()
   const { addItem } = useCart()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -435,7 +436,6 @@ export const CatalogScreen: React.FC = () => {
                       })
                       .filter(Boolean) as { listinoId: number; listinoName: string; price: number }[]
 
-                    const [showAddMenu, setShowAddMenu] = useState(false)
                     const addToCart = (listino: { listinoId: number; listinoName: string; price: number }) => {
                       addItem({
                         productId: product.id,
@@ -446,7 +446,7 @@ export const CatalogScreen: React.FC = () => {
                         listinoId: listino.listinoId,
                         listinoName: listino.listinoName,
                       })
-                      setShowAddMenu(false)
+                      setAddMenuProductId(null)
                     }
 
                     return (
@@ -497,10 +497,10 @@ export const CatalogScreen: React.FC = () => {
                       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                         {availablePrices.length > 0 && (
                           <div style={{ position: 'relative' }}>
-                            <GlassButton variant="primary" size="sm" onClick={() => setShowAddMenu(!showAddMenu)}>
+                            <GlassButton variant="primary" size="sm" onClick={() => setAddMenuProductId(addMenuProductId === product.id ? null : product.id)}>
                               <ShoppingCartSimple size={14} weight="bold" />
                             </GlassButton>
-                            {showAddMenu && (
+                            {addMenuProductId === product.id && (
                               <div style={{
                                 position: 'absolute', bottom: '100%', right: 0, marginBottom: 4,
                                 background: tokens.colors.bgAlt, border: `1px solid ${tokens.colors.border}`,
