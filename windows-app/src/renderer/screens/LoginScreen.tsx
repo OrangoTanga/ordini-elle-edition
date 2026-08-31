@@ -18,25 +18,33 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     e.preventDefault()
     if (!username || !password) { setError('Inserisci username e password'); return }
     setSubmitting(true); setError('')
-    const result = await api.auth.login(username, password)
-    if (result.success && result.data?.token) {
-      const user = result.data.user
-      if (user && user.role !== 'admin') {
-        setError('Accesso negato — solo gli amministratori possono accedere al pannello Windows. Utilizza l\'app Android.')
-        setSubmitting(false)
-        return
+    try {
+      const result = await api.auth.login(username, password)
+      if (result.success && result.data?.token) {
+        const user = result.data.user
+        if (user && user.role !== 'admin') {
+          setError('Accesso negato — solo gli amministratori possono accedere al pannello Windows. Utilizza l\'app Android.')
+          return
+        }
+        localStorage.setItem('token', result.data.token)
+        localStorage.setItem('user', JSON.stringify(result.data.user))
+        if (result.data.crypto_salt) {
+          localStorage.setItem('crypto_salt', result.data.crypto_salt)
+          setCryptoKey(username, result.data.crypto_salt)
+        }
+        onLogin(result.data.token)
+      } else {
+        // Se il server locale non risponde, lo segnaliamo chiaramente
+        const msg = (result.error || '').toLowerCase()
+        if (msg.includes('timeout') || msg.includes('fetch') || msg.includes('network') || msg.includes('connession')) {
+          setError('Impossibile connettersi al server. Verifica che l\'app sia avviata correttamente e riprova.')
+        } else {
+          setError(result.error || 'Credenziali non valide')
+        }
       }
-      localStorage.setItem('token', result.data.token)
-      localStorage.setItem('user', JSON.stringify(result.data.user))
-      if (result.data.crypto_salt) {
-        localStorage.setItem('crypto_salt', result.data.crypto_salt)
-        setCryptoKey(username, result.data.crypto_salt)
-      }
-      onLogin(result.data.token)
-    } else {
-      setError(result.error || 'Credenziali non valide')
+    } finally {
+      setSubmitting(false)
     }
-    setSubmitting(false)
   }
 
   return (

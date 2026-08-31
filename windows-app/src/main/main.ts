@@ -6,6 +6,7 @@ import { spawn } from 'child_process'
 import { startServer, stopServer } from './server'
 import { startScheduler, stopScheduler } from './scheduler'
 import { stopTunnel } from './tunnelManager'
+import { persist } from './database'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -146,6 +147,32 @@ function downloadFile(url: string, dest: string, onProgress?: (received: number,
   })
 }
 
+// Termina l'app in modo IMMEDIATO e DETERMINISTICO per consentire all'installer
+// NSIS (--updated) di procedere senza il messaggio "chiudi prima l'applicazione".
+// app.quit() e' cooperativo: attende il drenaggio dell'event loop e puo' restare
+// appeso su socket HTTP keep-alive / WebSocket / tunnel non chiusi, tenendo
+// bloccati i file dell'app. Qui invece si fa un teardown esplicito e poi
+// app.exit(0), che termina il processo subito liberando i file (il DB viene
+// comunque persistito prima: e' gia' scritto a ogni richiesta, e lo riesportiamo
+// qui per sicurezza).
+function forceShutdownForUpdate(): void {
+  isQuitting = true
+  try { persist() } catch { /* se non riesce, il DB e' comunque su disco */ }
+  try { stopScheduler() } catch { /* ignora */ }
+  try { stopServer() } catch (err) { console.error('[Updater] stopServer fallito:', err) }
+  try { stopTunnel() } catch { /* ignora */ }
+  try {
+    if (!mainWindow?.isDestroyed()) mainWindow?.destroy()
+  } catch { /* ignora */ }
+  mainWindow = null
+  try { tray?.destroy() } catch { /* ignora */ }
+  tray = null
+  // Uscita forzata e sincrona: non passa da before-quit/will-quit, che qui
+  // sono gia' stati eseguiti in forma esplicita. Garantisce che il processo
+  // termini subito e che NSIS possa sovrascrivere i file.
+  app.exit(0)
+}
+
 function setupIPC(): void {
   ipcMain.handle('window:minimize', () => mainWindow?.minimize())
   ipcMain.handle('window:maximize', () => {
@@ -191,9 +218,10 @@ function setupIPC(): void {
         console.error('[Updater] Avvio installer fallito:', err)
       })
       child.unref()
-      // Chiude subito l'app (non con ritardo): NSIS --updated attende la
-      // chiusura, quindi piu' in fretta termina, piu' in fretta installa.
-      app.quit()
+      // Uscita immediata e deterministica: app.exit(0) chiude il processo subito
+      // (non attende l'event loop), cosi' NSIS --updated vede l'app chiusa e
+      // installa senza "chiudi prima l'applicazione Ordini Elly Edition".
+      forceShutdownForUpdate()
       return { ok: true }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Download fallito'
@@ -229,7 +257,7 @@ function setupIPC(): void {
         console.error('[Updater] Avvio installer fallito:', err)
       })
       child.unref()
-      app.quit()
+      forceShutdownForUpdate()
       return { ok: true }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Download fallito'

@@ -79,7 +79,14 @@ export async function startServer(): Promise<http.Server> {
 
 export function stopServer(): void {
   closeIO()
-  if (server) server.close()
+  if (server) {
+    // Chiude forzatamente tutte le connessioni pendenti (HTTP keep-alive e
+    // socket WebSocket) cosi' server.close() non resta appeso e il processo
+    // puo' terminare subito (essenziale durante l'aggiornamento OTA).
+    ;(server as any).closeAllConnections?.()
+    ;(server as any).closeIdleConnections?.()
+    server.close()
+  }
   closeDatabase()
 }
 

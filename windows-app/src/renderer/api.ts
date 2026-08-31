@@ -65,13 +65,19 @@ async function decryptOrderFields(data: any): Promise<any> {
   return data
 }
 
-async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<{ success: boolean; data?: T; error?: string }> {
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}, timeoutMs = 15000): Promise<{ success: boolean; data?: T; error?: string }> {
   const token = localStorage.getItem('token')
   const base = getApiUrl()
 
+  // Timeout: evita che un server irraggiungibile/pendente blocchi a lungo
+  // l'interfaccia (es. login "Accesso in corso..." per sempre). Dopo il limite
+  // la richiesta viene abortita e restituito un errore di connessione.
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const res = await fetch(`${base}${endpoint}`, {
       ...options,
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -86,7 +92,12 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
     return json
   } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      return { success: false, error: 'Timeout: server non raggiungibile. Riprova.' }
+    }
     return { success: false, error: err.message || 'Errore di connessione' }
+  } finally {
+    clearTimeout(timer)
   }
 }
 
