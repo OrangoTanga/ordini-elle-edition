@@ -75,7 +75,10 @@ export default function App() {
     }
   }, [])
 
-  const handleLogin = (_token: string) => setAuthenticated(true)
+  const handleLogin = (_token: string) => {
+    setAuthenticated(true)
+    update.checkNow()
+  }
 
   if (loading) {
     return (
@@ -88,10 +91,9 @@ export default function App() {
     )
   }
 
-  if (!authenticated) {
-    return <LoginScreen onLogin={handleLogin} />
-  }
-
+  // L'aggiornamento OBBLIGATORIO viene valutato PRIMA del gate di login:
+  // va mostrato all'apertura dell'app a prescindere da login/logout, così
+  // chi ha una versione vecchia vede subito la schermata di update.
   if (update.info && update.info.mandatory) {
     return (
       <UpdateBlocker
@@ -101,6 +103,10 @@ export default function App() {
         onDownload={update.downloadUpdate}
       />
     )
+  }
+
+  if (!authenticated) {
+    return <LoginScreen onLogin={handleLogin} />
   }
 
   const renderScreen = () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 
 export interface AppVersionInfo {
@@ -10,7 +10,7 @@ export interface AppVersionInfo {
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000
 
-function compareVersions(a: string, b: string): -1 | 0 | 1 {
+export function compareVersions(a: string, b: string): -1 | 0 | 1 {
   const pa = parseVersion(a)
   const pb = parseVersion(b)
   if (!pa || !pb) return 0
@@ -64,32 +64,32 @@ export function useUpdateChecker(platform: 'windows' | 'android') {
   const [currentVersion, setCurrentVersion] = useState('')
   const [dismissed, setDismissed] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const cancelledRef = useRef(false)
+
+  const runCheck = useCallback(async () => {
+    try {
+      const version = await window.electron?.getAppVersion()
+      if (!version) return
+      setCurrentVersion(version)
+
+      const latest = await fetchFromWorker(platform)
+      if (cancelledRef.current || !latest) return
+
+      if (latest.version && compareVersions(version, latest.version) < 0) {
+        setInfo(latest)
+      }
+    } catch { /* silenzioso: un errore di rete non blocca l'app */ }
+  }, [platform])
 
   useEffect(() => {
-    let cancelled = false
-
-    const runCheck = async () => {
-      try {
-        const version = await window.electron?.getAppVersion()
-        if (!version) return
-        setCurrentVersion(version)
-
-        const latest = await fetchFromWorker(platform)
-        if (cancelled || !latest) return
-
-        if (latest.version && compareVersions(version, latest.version) < 0) {
-          setInfo(latest)
-        }
-      } catch { /* silenzioso: un errore di rete non blocca l'app */ }
-    }
-
+    cancelledRef.current = false
     runCheck()
     timerRef.current = setInterval(runCheck, CHECK_INTERVAL_MS)
     return () => {
-      cancelled = true
+      cancelledRef.current = true
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [platform])
+  }, [runCheck])
 
   const dismiss = () => setDismissed(true)
 
@@ -104,5 +104,5 @@ export function useUpdateChecker(platform: 'windows' | 'android') {
     return window.electron?.downloadUpdate?.(info.url) || { ok: false, error: 'Download non disponibile' }
   }
 
-  return { info, currentVersion, dismissed, dismiss, openReleasePage, downloadUpdate }
+  return { info, currentVersion, dismissed, dismiss, openReleasePage, downloadUpdate, checkNow: runCheck }
 }

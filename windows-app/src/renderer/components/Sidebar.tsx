@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { tokens } from '../theme/tokens'
+import { api } from '../api'
+import { compareVersions } from '../services/useUpdateChecker'
+import { toast } from './Toast'
 import {
-  ChartBar, ClipboardText, Package, Storefront, User, CurrencyEur, Coins, CreditCard, Calendar, Gear, Wine,
+  ChartBar, ClipboardText, Package, Storefront, User, CurrencyEur, Coins, CreditCard, Calendar, Gear, Wine, ArrowClockwise, DownloadSimple,
 } from '@phosphor-icons/react'
 
 export type Page = 'dashboard' | 'orders' | 'catalog' | 'customers' | 'users' | 'listini' | 'provvigioni' | 'payments' | 'calendar' | 'settings'
@@ -27,10 +30,43 @@ const navItemDefs: { id: Page; icon: React.ReactNode; label: string }[] = [
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, orderCount }) => {
   const [appVersion, setAppVersion] = useState('')
+  const [checking, setChecking] = useState(false)
 
   useEffect(() => {
     window.electron?.getAppVersion().then(setAppVersion).catch(() => {})
   }, [])
+
+  // Verifica aggiornamenti centrali (Worker) e, se trovati, scarica e installa
+  // automaticamente. Questo risolve anche il caso "versione vecchia non riceve
+  // update": l'OTA si legge SEMPRE dal Worker, non dalla purge_config locale.
+  const handleCheckForUpdates = async () => {
+    if (checking) return
+    setChecking(true)
+    try {
+      const version = await window.electron?.getAppVersion()
+      const latest = await api.appVersions.get('windows')
+      if (!latest || !latest.success || !latest.data) {
+        toast.error('Impossibile verificare gli aggiornamenti. Controlla la connessione.')
+        return
+      }
+      const latestVersion = latest.data.version
+      if (!latestVersion || !latest.data.url) {
+        toast.info('Sei già all\'ultima versione disponibile.')
+        return
+      }
+      if (version && compareVersions(version, latestVersion) >= 0) {
+        toast.info('Sei già all\'ultima versione (' + version + ').')
+        return
+      }
+      // Aggiornamento trovato: scarica e installa in automatico.
+      const res = await window.electron?.downloadAndInstallUpdate(latest.data.url)
+      if (!res?.ok) toast.error('Download aggiornamento fallito: ' + (res?.error || 'errore sconosciuto'))
+    } catch (err: any) {
+      toast.error('Errore durante la verifica degli aggiornamenti: ' + (err?.message || 'errore sconosciuto'))
+    } finally {
+      setChecking(false)
+    }
+  }
 
   const navItems = navItemDefs.map(item => ({
     ...item,
@@ -132,11 +168,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange, ord
       background: tokens.colors.surface,
       borderRadius: tokens.radius.md,
       border: `1px solid ${tokens.colors.border}`,
-      fontSize: tokens.font.size.xs,
-      color: tokens.colors.textMuted,
-      textAlign: 'center',
+      display: 'flex', flexDirection: 'column', gap: 8,
     }}>
-      {appVersion ? `v${appVersion}` : ''}
+      <div style={{
+        fontSize: tokens.font.size.xs, color: tokens.colors.textMuted,
+        textAlign: 'center',
+      }}>
+        {appVersion ? `v${appVersion}` : ''}
+      </div>
+      <button
+        onClick={handleCheckForUpdates}
+        disabled={checking}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          width: '100%', padding: '8px 10px', cursor: checking ? 'default' : 'pointer',
+          background: tokens.colors.primaryGlow, color: tokens.colors.primary,
+          border: `1px solid ${tokens.colors.primary}33`, borderRadius: tokens.radius.md,
+          fontSize: tokens.font.size.xs, fontWeight: 600, fontFamily: 'inherit',
+        }}
+      >
+        {checking ? <ArrowClockwise size={14} style={{ animation: 'sidebar-spin 1s linear infinite' }} /> : <DownloadSimple size={14} weight="bold" />}
+        {checking ? 'Verifica...' : 'Verifica aggiornamenti'}
+      </button>
+      <style>{`@keyframes sidebar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   </div>
   )

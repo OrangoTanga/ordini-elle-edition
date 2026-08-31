@@ -223,13 +223,21 @@ export const api = {
   },
 
   appVersions: {
+    // L'OTA vive nel Worker (D1 `settings`): va interrogato SEMPRE direttamente,
+    // non il server locale (che leggerebbe la purge_config locale, mai aggiornata
+    // centralmente). In questo modo ogni installazione riceve gli aggiornamenti
+    // centrali indipendentemente da login/versione.
     get: async (platform: string) => {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), 15000)
       try {
-        const res = await fetch(`${getApiUrl()}/api/app-versions?platform=${encodeURIComponent(platform)}`)
+        const res = await fetch(`${WORKER_URL}/api/app-versions?platform=${encodeURIComponent(platform)}`, { signal: controller.signal })
         if (!res.ok) return { success: false, error: `HTTP ${res.status}` }
         return await res.json()
       } catch (e: any) {
         return { success: false, error: e?.message || 'Errore di rete' }
+      } finally {
+        clearTimeout(timeout)
       }
     },
   },

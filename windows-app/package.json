@@ -1,6 +1,6 @@
 {
   "name": "ordini-elly-edition-windows",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "Gestione ordini - Pannello di controllo Windows",
   "main": "dist/main.js",
   "author": "Elly Edition",

@@ -214,15 +214,26 @@ export const CatalogScreen: React.FC = () => {
   }, [products, search])
 
   const sections = useMemo(() => {
-    const filteredByCat = selectedCat === 'Tutti'
+    const base = selectedCat === 'Tutti'
       ? filtered
       : filtered.filter(p => p.category === selectedCat)
-    return categories
-      .map(cat => ({
-        category: cat,
-        products: filteredByCat.filter(p => p.category === cat),
-      }))
+    // Gruppi basati sulle categorie REALI presenti nei prodotti (unione con le
+    // categorie note). Prima si iteravano solo le categorie della tabella
+    // `categories`: se era vuota o mancava una categoria, i prodotti di quella
+    // categoria sparivano dal catalogo ("si vede solo un prodotto"). Questa
+    // versione garantisce che NESSUN prodotto nel DB venga nascosto.
+    const uniqueCats = Array.from(new Set([
+      ...categories,
+      ...base.map(p => p.category).filter(Boolean),
+    ]))
+    const grouped = uniqueCats
+      .map(cat => ({ category: cat, products: base.filter(p => p.category === cat) }))
       .filter(s => s.products.length > 0)
+    const noCat = base.filter(p => !p.category)
+    if (selectedCat === 'Tutti' && noCat.length > 0) {
+      grouped.push({ category: 'Senza categoria', products: noCat })
+    }
+    return grouped
   }, [filtered, selectedCat, categories])
 
   const getProductPrice = (p: any, listinoId: number): string => {

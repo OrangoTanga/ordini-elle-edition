@@ -26,14 +26,21 @@ export const DashboardScreen: React.FC<DashboardProps> = ({ onPendingCountChange
   }, [])
 
   const fetchStats = async () => {
-    const [result, health] = await Promise.all([api.orders.dashboard(), api.health()])
-    setCloudOnline(health)
-    if (result.success) {
-      setStats(result.data)
-      setError('')
-      onPendingCountChange(result.data.pending?.count || 0)
-    } else {
-      setError(result.error || 'Errore di connessione')
+    // try/catch obbligatorio: una Promise non gestita (es. health() che rigetta
+    // mentre la dashboard è mezza caricata) lasciava lo stato invariato -> la
+    // dashboard restava bloccata su "Caricamento..." per sempre.
+    try {
+      const [result, health] = await Promise.all([api.orders.dashboard(), api.health()])
+      setCloudOnline(health)
+      if (result.success) {
+        setStats(result.data)
+        setError('')
+        onPendingCountChange(result.data.pending?.count || 0)
+      } else {
+        setError(result.error || 'Errore di connessione')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Errore di connessione al server')
     }
   }
 
