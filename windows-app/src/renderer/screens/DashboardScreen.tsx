@@ -5,6 +5,7 @@ import { GlassButton } from '../components/GlassButton'
 import { StatCard } from '../components/StatCard'
 import { OrderCard } from '../components/OrderCard'
 import { Badge } from '../components/Badge'
+import { api } from '../api'
 import { useUpdateChecker } from '../services/useUpdateChecker'
 import { ChartBar, Clock, CheckCircle, XCircle, ArrowClockwise, Database, WifiHigh, ArrowDown, DownloadSimple } from '@phosphor-icons/react'
 
